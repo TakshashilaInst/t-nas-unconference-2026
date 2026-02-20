@@ -87,6 +87,11 @@
           <input type="email" id="new-topic-email" placeholder="e.g. priya@example.com" autocomplete="email" required />
           <span class="field-error" id="topic-email-error"></span>
         </div>
+        <div class="form-group">
+          <label for="new-topic-desc">Topic Description <span class="required">*</span> <span class="field-optional">(max 100 words)</span></label>
+          <textarea id="new-topic-desc" rows="4" maxlength="700" placeholder="Add a short description for your topic here — what is it about, why does it matter? (max 100 words)"></textarea>
+          <span class="desc-word-count" id="desc-word-count">0 / 100 words</span>
+        </div>
         <div class="form-actions">
           <button type="submit" class="btn-primary">
             <span class="btn-icon">&#127775;</span> Submit &amp; Vote

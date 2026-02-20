@@ -453,6 +453,36 @@ body {
   box-shadow: 0 0 0 3px rgba(241,153,20,.15);
 }
 .form-group input.invalid { border-color: #e03c3c; }
+.form-group textarea {
+  width: 100%;
+  border: 1.5px solid var(--gray-300);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: .95rem;
+  color: var(--maroon);
+  background: #fff;
+  resize: vertical;
+  min-height: 90px;
+  transition: border-color .2s, box-shadow .2s;
+  outline: none;
+}
+.form-group textarea:focus {
+  border-color: var(--orange);
+  box-shadow: 0 0 0 3px rgba(241,153,20,.15);
+}
+.field-optional {
+  font-size: .78rem;
+  color: #888;
+  font-weight: 400;
+}
+.desc-word-count {
+  display: block;
+  font-size: .75rem;
+  color: #888;
+  margin-top: 4px;
+  text-align: right;
+}
 .field-error {
   display: block; font-size: .75rem;
   color: #e03c3c; margin-top: 4px; min-height: 16px;

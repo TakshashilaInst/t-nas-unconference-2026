@@ -186,6 +186,15 @@ const topicNameError   = document.getElementById('topic-name-error');
 const topicEmailError  = document.getElementById('topic-email-error');
 const addTopicCloseBtn = document.getElementById('add-topic-close-btn');
 const addTopicCancelBtn= document.getElementById('add-topic-cancel-btn');
+const topicDescInput   = document.getElementById('new-topic-desc');
+const descWordCount    = document.getElementById('desc-word-count');
+
+/* ── WORD COUNT for description ────────────────────────── */
+topicDescInput && topicDescInput.addEventListener('input', () => {
+  const words = topicDescInput.value.trim() === '' ? 0 : topicDescInput.value.trim().split(/\s+/).length;
+  descWordCount.textContent = `${words} / 100 words`;
+  descWordCount.style.color = words > 100 ? '#c0392b' : '#888';
+});
 
 /* ── RENDER ────────────────────────────────────────────── */
 function renderTopics() {
@@ -211,6 +220,7 @@ function renderTopics() {
         <div class="topic-card-label">${escHtml(label)}</div>
         <div class="topic-card-title">${escHtml(topic.title)}</div>
         ${bio ? `<div class="topic-card-bio">${escHtml(bio)}</div>` : ''}
+        ${isCustom && topic.desc ? `<div class="topic-card-bio">${escHtml(topic.desc)}</div>` : ''}
         ${isCustom && topic.addedBy ? `<div class="topic-card-bio">Added by ${escHtml(topic.addedBy)}</div>` : ''}
       </div>
       <div class="topic-card-footer">
@@ -343,6 +353,8 @@ function closeAddTopicModal() {
   topicInput.classList.remove('invalid');
   topicNameInput.classList.remove('invalid');
   topicEmailInput.classList.remove('invalid');
+  if (topicDescInput) topicDescInput.value = '';
+  if (descWordCount) descWordCount.textContent = '0 / 100 words';
   document.body.style.overflow = '';
 }
 
@@ -362,6 +374,8 @@ addTopicForm && addTopicForm.addEventListener('submit', async e => {
   const topicTitle = topicInput.value.trim();
   const name       = topicNameInput.value.trim();
   const email      = topicEmailInput.value.trim();
+  const desc       = topicDescInput ? topicDescInput.value.trim() : '';
+  const wordCount  = desc === '' ? 0 : desc.split(/\s+/).length;
   let valid        = true;
 
   if (!topicTitle || topicTitle.length < 10) {
@@ -380,6 +394,17 @@ addTopicForm && addTopicForm.addEventListener('submit', async e => {
     topicEmailInput.classList.add('invalid'); valid = false;
   } else { topicEmailError.textContent = ''; topicEmailInput.classList.remove('invalid'); }
 
+  if (!desc) {
+    showToast('Please add a description for your topic.', 'error');
+    topicDescInput.focus();
+    return;
+  }
+
+  if (wordCount > 100) {
+    showToast('Please keep your description under 100 words.', 'error');
+    return;
+  }
+
   if (!valid) return;
 
   /* Build new topic object */
@@ -388,6 +413,7 @@ addTopicForm && addTopicForm.addEventListener('submit', async e => {
     id:         newId,
     label:      '💬 Community Topic',
     title:      topicTitle,
+    desc:       desc || '',
     addedBy:    name.trim(),
     addedEmail: email.trim().toLowerCase(),
   };
