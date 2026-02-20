@@ -1,53 +1,58 @@
 /* ============================================================
-   TAKSHASHILA UNCONFERENCE – APP LOGIC
+   TAKSHASHILA UNCONFERENCE – APP LOGIC  v3
+   Storage: JSONBin.io (shared across all users/devices)
+     bin 1: topics  → { topics: [{id,label,title,speaker?,addedBy?,addedEmail?}] }
+     bin 2: votes   → { votes:  {topicId: [{name,email,ts}]} }
    Rules:
-     • 6 pre-set topics shown (mix of general + AMA)
-     • Each person gets exactly 1 upvote total
-     • If they propose their own topic, that counts as their upvote
-       — they cannot then upvote any other topic
-     • User-added topics get ids 1000+
-   Storage: localStorage
-     'ti_uncof_votes'     → { topicId: [{name,email,ts}, …] }
-     'ti_voter_sessions'  → { email: [topicId, …] }
-     'ti_user_topics'     → [ {id,title,addedBy,addedEmail}, … ]
-     'ti_next_custom_id'  → number (starts 1000)
+     • Each email can upvote each topic at most once
+     • No overall cap — upvote as many topics as you like
+     • Adding your own topic does NOT block upvoting others
    ============================================================ */
 
 'use strict';
 
+/* ─────────────────────────────────────────────────────────
+   JSONBIN CONFIG
+   Create two free bins at https://jsonbin.io and paste IDs below.
+   Also paste your JSONBin API key (X-Master-Key).
+   ───────────────────────────────────────────────────────── */
+const JSONBIN_KEY      = '$2a$10$NL2i1JiSUo1xr.l1gtrzO.BjYfBRIcju6ni4Imcnqj1yGSOCRZSmC';
+const TOPICS_BIN_ID    = '6997f041d0ea881f40c8b08a';
+const VOTES_BIN_ID     = '6997f08443b1c97be98d4e65';
+const JSONBIN_BASE     = 'https://api.jsonbin.io/v3/b';
+
 /* ── SPEAKER BIOS ──────────────────────────────────────── */
 const SPEAKER_BIOS = {
-  "Prof. Douglas Fuller":     "Associate Professor at City University of Hong Kong, expert on China's technology.",
+  "Prof. Douglas Fuller":      "Associate Professor at City University of Hong Kong, expert on China's technology.",
   "Lt. Gen. S.L. Narasimhan": "Retired Indian Army Lieutenant General and China expert at Gateway House.",
-  "Dr. Manpreet Sethi":       "Distinguished Fellow at Centre for Air Power Studies specialising in nuclear security.",
-  "Dr. Atul Mishra":          "Associate Professor at Shiv Nadar University specialising in Indian foreign policy.",
-  "Dr. Jabin Jacob":          "Associate Professor at Shiv Nadar University, expert on China-India relations.",
-  "Prof. Pradeep Taneja":     "Senior Lecturer at University of Melbourne specialising in China and India.",
-  "Dr. Sanjaya Baru":         "Distinguished Fellow at IDSA, former Media Adviser to Prime Minister Singh.",
-  "Dr. Happymon Jacob":       "Associate Professor of Diplomacy and Disarmament Studies at Jawaharlal Nehru University.",
-  "Dr. Aparna Pande":         "Director, Initiative on the Future of India and South Asia, Hudson Institute.",
-  "Dr. Shanthie D'Souza":     "Founder and President of Mantraya Institute, expert on South Asia and Afghanistan.",
-  "Prof. Sumit Ganguly":      "Tagore Professor Emeritus at Indiana University and Senior Fellow, Hoover Institution.",
-  "Amb. Vivek Katju":         "Retired IFS officer, former Ambassador to Afghanistan, Myanmar, and Thailand.",
-  "Dr. Anirudh Suri":         "Non-resident scholar at Carnegie India, author, and technology-geopolitics venture capitalist.",
-  "Mr. Karthik Nachiappan":   "Research Fellow at the Institute of South Asian Studies, National University of Singapore.",
-  "Mr. Santosh Pai":          "Partner at Dentons Link Legal, India's leading expert on India-China business law.",
-  "Ms. Katja Drinhausen":     "Head of Politics and Society at MERICS, expert on China's governance and law.",
-  "Dr. Anton Harder":         "Historian at the London School of Economics specialising in Sino-Indian Cold War relations.",
-  "Dr. Devendra Kumar":       "Associate Fellow at Centre of Excellence for Himalayan Studies, Shiv Nadar University.",
-  "Dr. Amrita Jash":          "Assistant Professor at Manipal Academy, expert on China's military and foreign policy.",
-  "Nitin Pai":                "Co-founder and Director of Takshashila Institution, focused on Indo-Pacific and public policy.",
+  "Dr. Manpreet Sethi":        "Distinguished Fellow at Centre for Air Power Studies specialising in nuclear security.",
+  "Dr. Atul Mishra":           "Associate Professor at Shiv Nadar University specialising in Indian foreign policy.",
+  "Dr. Jabin Jacob":           "Associate Professor at Shiv Nadar University, expert on China-India relations.",
+  "Prof. Pradeep Taneja":      "Senior Lecturer at University of Melbourne specialising in China and India.",
+  "Dr. Sanjaya Baru":          "Distinguished Fellow at IDSA, former Media Adviser to Prime Minister Singh.",
+  "Dr. Happymon Jacob":        "Associate Professor of Diplomacy and Disarmament Studies at Jawaharlal Nehru University.",
+  "Dr. Aparna Pande":          "Director, Initiative on the Future of India and South Asia, Hudson Institute.",
+  "Dr. Shanthie D'Souza":      "Founder and President of Mantraya Institute, expert on South Asia and Afghanistan.",
+  "Prof. Sumit Ganguly":       "Tagore Professor Emeritus at Indiana University and Senior Fellow, Hoover Institution.",
+  "Amb. Vivek Katju":          "Retired IFS officer, former Ambassador to Afghanistan, Myanmar, and Thailand.",
+  "Dr. Anirudh Suri":          "Non-resident scholar at Carnegie India, author and technology-geopolitics venture capitalist.",
+  "Mr. Karthik Nachiappan":    "Research Fellow at the Institute of South Asian Studies, National University of Singapore.",
+  "Mr. Santosh Pai":           "Partner at Dentons Link Legal, India's leading expert on India-China business law.",
+  "Ms. Katja Drinhausen":      "Head of Politics and Society at MERICS, expert on China's governance and law.",
+  "Dr. Anton Harder":          "Historian at the London School of Economics specialising in Sino-Indian Cold War relations.",
+  "Dr. Devendra Kumar":        "Associate Fellow at Centre of Excellence for Himalayan Studies, Shiv Nadar University.",
+  "Dr. Amrita Jash":           "Assistant Professor at Manipal Academy, expert on China's military and foreign policy.",
+  "Nitin Pai":                 "Co-founder and Director of Takshashila Institution, focused on Indo-Pacific and public policy.",
 };
 
-/* ── THE 6 DISPLAYED TOPICS ────────────────────────────── */
-/* Mix of general + AMA as specified */
+/* ── PRESET TOPICS (always shown, seeded into bin on first load) ── */
 const PRESET_TOPICS = [
-  { id: 1,  label: 'Topic 1',  title: "How does AI impact jobs in the near future?" },
-  { id: 2,  label: 'Topic 2',  title: "AMA with Prof. Douglas Fuller",   speaker: "Prof. Douglas Fuller" },
-  { id: 3,  label: 'Topic 3',  title: "Can Middle Powers cooperate to mitigate shockwaves of great power politics?" },
-  { id: 4,  label: 'Topic 4',  title: "AMA with Lt. Gen. S.L. Narasimhan", speaker: "Lt. Gen. S.L. Narasimhan" },
-  { id: 5,  label: 'Topic 5',  title: "Should Nuclear Proliferation be Free & Open?" },
-  { id: 6,  label: 'Topic 6',  title: "Should Indian Police Officers be both investigators and enforcers of law & order?" },
+  { id: 1, label: 'Topic 1', title: "How does AI impact jobs in the near future?" },
+  { id: 2, label: 'Topic 2', title: "AMA with Prof. Douglas Fuller",      speaker: "Prof. Douglas Fuller" },
+  { id: 3, label: 'Topic 3', title: "Can Middle Powers cooperate to mitigate shockwaves of great power politics?" },
+  { id: 4, label: 'Topic 4', title: "AMA with Lt. Gen. S.L. Narasimhan", speaker: "Lt. Gen. S.L. Narasimhan" },
+  { id: 5, label: 'Topic 5', title: "Should Nuclear Proliferation be Free & Open?" },
+  { id: 6, label: 'Topic 6', title: "Should Indian Police Officers be both investigators and enforcers of law & order?" },
 ];
 
 /* ── COLOUR PALETTE ────────────────────────────────────── */
@@ -62,84 +67,109 @@ const PALETTES = [
   { accent: '#2471a3', accentDk: '#1a527a' },
 ];
 
-/* ── STORAGE ───────────────────────────────────────────── */
-const VOTES_KEY       = 'ti_uncof_votes';
-const VOTER_KEY       = 'ti_voter_sessions';
-const USER_TOPICS_KEY = 'ti_user_topics';
-const NEXT_ID_KEY     = 'ti_next_custom_id';
+/* ── LOCAL CACHE (avoid hammering API on every render) ─── */
+let cachedTopics = null;  // array of topic objects
+let cachedVotes  = null;  // { topicId: [{name,email,ts}] }
+let nextCustomId = 1000;
 
-function loadVotes()         { try { return JSON.parse(localStorage.getItem(VOTES_KEY))       || {}; } catch { return {}; } }
-function saveVotes(d)        { localStorage.setItem(VOTES_KEY,       JSON.stringify(d)); }
-function loadVoterSessions() { try { return JSON.parse(localStorage.getItem(VOTER_KEY))       || {}; } catch { return {}; } }
-function saveVoterSessions(d){ localStorage.setItem(VOTER_KEY,       JSON.stringify(d)); }
-function loadUserTopics()    { try { return JSON.parse(localStorage.getItem(USER_TOPICS_KEY)) || []; } catch { return []; } }
-function saveUserTopics(d)   { localStorage.setItem(USER_TOPICS_KEY, JSON.stringify(d)); }
+/* ── JSONBIN API HELPERS ───────────────────────────────── */
+const HEADERS = {
+  'Content-Type':  'application/json',
+  'X-Master-Key':  JSONBIN_KEY,
+  'X-Bin-Versioning': 'false',   // always overwrite latest
+};
 
-function nextCustomId() {
-  const n = parseInt(localStorage.getItem(NEXT_ID_KEY) || '1000', 10);
-  localStorage.setItem(NEXT_ID_KEY, n + 1);
-  return n;
-}
-
-function getVoteCount(topicId)    { return (loadVotes()[topicId] || []).length; }
-function hasVotedFor(email, id)   { return (loadVoterSessions()[email.toLowerCase()] || []).includes(id); }
-
-/* Has this email used their single upvote anywhere? */
-function emailHasUsedVote(email) {
-  return (loadVoterSessions()[email.toLowerCase()] || []).length > 0;
-}
-
-/* Has this device used its vote? (device-level check using all stored voter records) */
-function deviceHasVoted() {
-  const vs = loadVoterSessions();
-  return Object.values(vs).some(arr => arr.length > 0);
-}
-
-/* Which topic id has this device voted for? */
-function deviceVotedTopicId() {
-  const vs = loadVoterSessions();
-  for (const ids of Object.values(vs)) {
-    if (ids.length > 0) return ids[0];
+async function fetchTopics() {
+  try {
+    const r = await fetch(`${JSONBIN_BASE}/${TOPICS_BIN_ID}/latest`, { headers: HEADERS });
+    const j = await r.json();
+    const topics = j.record?.topics || [];
+    // Compute nextCustomId
+    const customIds = topics.filter(t => t.id >= 1000).map(t => t.id);
+    nextCustomId = customIds.length ? Math.max(...customIds) + 1 : 1000;
+    cachedTopics = topics;
+    return topics;
+  } catch (err) {
+    console.warn('fetchTopics failed, using presets', err);
+    cachedTopics = [...PRESET_TOPICS];
+    return cachedTopics;
   }
-  return null;
 }
 
-function recordVote(topicId, name, email) {
-  const votes = loadVotes();
-  if (!votes[topicId]) votes[topicId] = [];
-  votes[topicId].push({ name: name.trim(), email: email.trim().toLowerCase(), ts: new Date().toISOString() });
-  saveVotes(votes);
-
-  const vs  = loadVoterSessions();
-  const key = email.trim().toLowerCase();
-  if (!vs[key]) vs[key] = [];
-  if (!vs[key].includes(topicId)) vs[key].push(topicId);
-  saveVoterSessions(vs);
+async function fetchVotes() {
+  try {
+    const r = await fetch(`${JSONBIN_BASE}/${VOTES_BIN_ID}/latest`, { headers: HEADERS });
+    const j = await r.json();
+    cachedVotes = j.record?.votes || {};
+    return cachedVotes;
+  } catch (err) {
+    console.warn('fetchVotes failed', err);
+    cachedVotes = {};
+    return cachedVotes;
+  }
 }
 
-/* ── ALL TOPICS (preset + user-added) ─────────────────── */
-function allTopics() {
-  return [...PRESET_TOPICS, ...loadUserTopics()];
+async function saveTopics(topics) {
+  cachedTopics = topics;
+  try {
+    await fetch(`${JSONBIN_BASE}/${TOPICS_BIN_ID}`, {
+      method: 'PUT',
+      headers: HEADERS,
+      body: JSON.stringify({ topics }),
+    });
+  } catch (err) { console.warn('saveTopics failed', err); }
+}
+
+async function saveVotes(votes) {
+  cachedVotes = votes;
+  try {
+    await fetch(`${JSONBIN_BASE}/${VOTES_BIN_ID}`, {
+      method: 'PUT',
+      headers: HEADERS,
+      body: JSON.stringify({ votes }),
+    });
+  } catch (err) { console.warn('saveVotes failed', err); }
+}
+
+/* ── VOTE HELPERS ──────────────────────────────────────── */
+function getVoteCount(topicId) {
+  return ((cachedVotes || {})[topicId] || []).length;
+}
+
+function hasVotedFor(email, topicId) {
+  const list = ((cachedVotes || {})[topicId] || []);
+  return list.some(v => v.email === email.toLowerCase().trim());
+}
+
+/* ── FORMSPREE ─────────────────────────────────────────── */
+const FORMSPREE_ENDPOINT = 'https://formspree.io/f/xgolzydb';
+async function sendToFormspree(payload) {
+  try {
+    await fetch(FORMSPREE_ENDPOINT, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body:    JSON.stringify(payload),
+    });
+  } catch (_) { /* silent */ }
 }
 
 /* ── STATE ─────────────────────────────────────────────── */
 let pendingTopicId = null;
 
 /* ── DOM REFS ──────────────────────────────────────────── */
-const grid            = document.getElementById('topics-grid');
-const overlay         = document.getElementById('modal-overlay');
-const modalSessionEl  = document.getElementById('modal-session-name');
-const form            = document.getElementById('interest-form');
-const nameInput       = document.getElementById('voter-name');
-const emailInput      = document.getElementById('voter-email');
-const nameError       = document.getElementById('name-error');
-const emailError      = document.getElementById('email-error');
-const closeBtn        = document.getElementById('modal-close-btn');
-const cancelBtn       = document.getElementById('modal-cancel-btn');
-const toast           = document.getElementById('toast');
-const quotaBadge      = document.getElementById('upvote-quota-badge');
-const quotaText       = document.getElementById('upvote-quota-text');
-
+const grid             = document.getElementById('topics-grid');
+const overlay          = document.getElementById('modal-overlay');
+const modalSessionEl   = document.getElementById('modal-session-name');
+const form             = document.getElementById('interest-form');
+const nameInput        = document.getElementById('voter-name');
+const emailInput       = document.getElementById('voter-email');
+const nameError        = document.getElementById('name-error');
+const emailError       = document.getElementById('email-error');
+const closeBtn         = document.getElementById('modal-close-btn');
+const cancelBtn        = document.getElementById('modal-cancel-btn');
+const toast            = document.getElementById('toast');
+const quotaBadge       = document.getElementById('upvote-quota-badge');
+const quotaText        = document.getElementById('upvote-quota-text');
 const addTopicBtn      = document.getElementById('add-topic-btn');
 const addTopicOverlay  = document.getElementById('add-topic-overlay');
 const addTopicForm     = document.getElementById('add-topic-form');
@@ -154,22 +184,18 @@ const addTopicCancelBtn= document.getElementById('add-topic-cancel-btn');
 
 /* ── RENDER ────────────────────────────────────────────── */
 function renderTopics() {
+  const topics = cachedTopics || PRESET_TOPICS;
   grid.innerHTML = '';
-  const topics       = allTopics();
-  const devVoted     = deviceHasVoted();
-  const devVotedId   = deviceVotedTopicId();
 
   topics.forEach((topic, idx) => {
-    const palette   = PALETTES[idx % PALETTES.length];
-    const count     = getVoteCount(topic.id);
-    const isVoted   = devVotedId === topic.id;
-    const isLocked  = devVoted && !isVoted;
-    const isCustom  = topic.id >= 1000;
-    const bio       = topic.speaker ? (SPEAKER_BIOS[topic.speaker] || '') : '';
-    const label     = isCustom ? '💬 Community Topic' : (topic.label || `Topic ${topic.id}`);
+    const palette  = PALETTES[idx % PALETTES.length];
+    const count    = getVoteCount(topic.id);
+    const isCustom = topic.id >= 1000;
+    const bio      = topic.speaker ? (SPEAKER_BIOS[topic.speaker] || '') : '';
+    const label    = isCustom ? '💬 Community Topic' : (topic.label || `Topic ${topic.id}`);
 
     const card = document.createElement('div');
-    card.className  = `topic-card${isVoted ? ' upvoted' : ''}${isLocked ? ' locked' : ''}`;
+    card.className  = 'topic-card';
     card.dataset.id = topic.id;
     card.style.setProperty('--card-accent',    palette.accent);
     card.style.setProperty('--card-accent-dk', palette.accentDk);
@@ -180,13 +206,13 @@ function renderTopics() {
         <div class="topic-card-label">${escHtml(label)}</div>
         <div class="topic-card-title">${escHtml(topic.title)}</div>
         ${bio ? `<div class="topic-card-bio">${escHtml(bio)}</div>` : ''}
+        ${isCustom && topic.addedBy ? `<div class="topic-card-bio">Added by ${escHtml(topic.addedBy)}</div>` : ''}
       </div>
       <div class="topic-card-footer">
         <div class="upvote-wrap">
-          <button class="btn-upvote${isVoted ? ' upvoted' : ''}"
+          <button class="btn-upvote"
                   data-id="${topic.id}"
-                  ${isLocked ? 'disabled' : ''}
-                  aria-label="${isVoted ? 'You upvoted this' : 'Upvote this topic'}">
+                  aria-label="Upvote this topic">
             &#9650;
           </button>
           <span class="upvote-count${count > 0 ? ' has-votes' : ''}" data-id="${topic.id}">
@@ -194,7 +220,6 @@ function renderTopics() {
           </span>
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
-          <span class="topic-voted-badge">&#10003; Your vote</span>
           ${isCustom ? `<span class="community-badge">&#128172; Community</span>` : ''}
         </div>
       </div>`;
@@ -206,16 +231,17 @@ function renderTopics() {
   attachUpvoteListeners();
 }
 
-/* ── QUOTA BADGE ───────────────────────────────────────── */
+/* ── QUOTA BADGE — now shows total upvotes across all topics ── */
 function updateQuotaUI() {
-  const voted = deviceHasVoted();
-  quotaText.textContent = voted ? '1 / 1 upvoted' : '0 / 1 upvoted';
-  quotaBadge.classList.toggle('complete', voted);
+  const total = Object.values(cachedVotes || {}).reduce((s, arr) => s + arr.length, 0);
+  quotaText.textContent = `${total} upvote${total !== 1 ? 's' : ''} cast`;
+  // turn green if anything voted
+  quotaBadge.classList.toggle('complete', total > 0);
 }
 
 /* ── UPVOTE LISTENERS ──────────────────────────────────── */
 function attachUpvoteListeners() {
-  grid.querySelectorAll('.btn-upvote:not(.upvoted):not([disabled])').forEach(btn => {
+  grid.querySelectorAll('.btn-upvote').forEach(btn => {
     btn.addEventListener('click', e => {
       e.stopPropagation();
       openUpvoteModal(Number(btn.dataset.id));
@@ -225,7 +251,7 @@ function attachUpvoteListeners() {
 
 /* ── UPVOTE MODAL ──────────────────────────────────────── */
 function openUpvoteModal(topicId) {
-  const topic = allTopics().find(t => t.id === topicId);
+  const topic = (cachedTopics || PRESET_TOPICS).find(t => t.id === topicId);
   if (!topic) return;
   pendingTopicId = topicId;
   modalSessionEl.textContent = topic.title;
@@ -253,20 +279,7 @@ closeBtn.addEventListener('click', closeUpvoteModal);
 cancelBtn.addEventListener('click', closeUpvoteModal);
 overlay.addEventListener('click', e => { if (e.target === overlay) closeUpvoteModal(); });
 
-/* ── FORMSPREE ─────────────────────────────────────────── */
-const FORMSPREE_ENDPOINT = 'https://formspree.io/f/xgolzydb';
-
-async function sendToFormspree(payload) {
-  try {
-    await fetch(FORMSPREE_ENDPOINT, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-      body:    JSON.stringify(payload),
-    });
-  } catch (_) { /* silent fail */ }
-}
-
-/* ── UPVOTE FORM SUBMIT ────────────────────────────────── */
+/* ── UPVOTE SUBMIT ─────────────────────────────────────── */
 form.addEventListener('submit', async e => {
   e.preventDefault();
   const name  = nameInput.value.trim();
@@ -286,26 +299,29 @@ form.addEventListener('submit', async e => {
 
   if (!valid) return;
 
-  /* One upvote per email — across ALL topics */
-  if (emailHasUsedVote(email)) {
-    showToast(`${email} has already used their upvote.`, 'error');
+  /* Block duplicate vote on the SAME topic only */
+  if (hasVotedFor(email, pendingTopicId)) {
+    showToast(`You've already upvoted this topic.`, 'error');
     closeUpvoteModal(); return;
   }
 
-  const topic = allTopics().find(t => t.id === pendingTopicId);
-  recordVote(pendingTopicId, name, email);
+  /* Record vote in cache then push to JSONBin */
+  const votes = cachedVotes || {};
+  if (!votes[pendingTopicId]) votes[pendingTopicId] = [];
+  votes[pendingTopicId].push({ name: name.trim(), email: email.trim().toLowerCase(), ts: new Date().toISOString() });
 
-  await sendToFormspree({
-    name, email,
-    topic:     topic ? topic.title : '',
-    topicId:   pendingTopicId,
-    timestamp: new Date().toISOString(),
-    type:      'upvote',
-  });
+  const topic = (cachedTopics || PRESET_TOPICS).find(t => t.id === pendingTopicId);
 
+  /* Optimistic UI update before awaiting saves */
   closeUpvoteModal();
   showToast(`&#9650; Upvoted! Thanks, ${name}.`, 'success');
   renderTopics();
+
+  await Promise.all([
+    saveVotes(votes),
+    sendToFormspree({ name, email, topic: topic?.title || '', topicId: pendingTopicId, timestamp: new Date().toISOString(), type: 'upvote' }),
+  ]);
+
   renderAdminTable();
 });
 
@@ -331,11 +347,11 @@ addTopicCancelBtn&& addTopicCancelBtn.addEventListener('click', closeAddTopicMod
 addTopicOverlay  && addTopicOverlay.addEventListener('click', e => {
   if (e.target === addTopicOverlay) closeAddTopicModal();
 });
-
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') { closeUpvoteModal(); closeAddTopicModal(); }
 });
 
+/* ── ADD TOPIC SUBMIT ──────────────────────────────────── */
 addTopicForm && addTopicForm.addEventListener('submit', async e => {
   e.preventDefault();
   const topicTitle = topicInput.value.trim();
@@ -361,34 +377,43 @@ addTopicForm && addTopicForm.addEventListener('submit', async e => {
 
   if (!valid) return;
 
-  /* If this email has already voted anywhere, block */
-  if (emailHasUsedVote(email)) {
-    showToast(`${email} has already used their upvote and cannot add a topic.`, 'error');
-    closeAddTopicModal(); return;
-  }
+  /* Build new topic object */
+  const newId    = nextCustomId++;
+  const newTopic = {
+    id:         newId,
+    label:      '💬 Community Topic',
+    title:      topicTitle,
+    addedBy:    name.trim(),
+    addedEmail: email.trim().toLowerCase(),
+  };
 
-  /* Create the new topic */
-  const newId    = nextCustomId();
-  const newTopic = { id: newId, label: '💬 Community Topic', title: topicTitle, addedBy: name, addedEmail: email.toLowerCase() };
-  const topics   = loadUserTopics();
-  topics.push(newTopic);
-  saveUserTopics(topics);
+  /* Add to cached topics and push to JSONBin */
+  const updatedTopics = [...(cachedTopics || PRESET_TOPICS), newTopic];
 
-  /* Auto-vote for their own topic — uses their 1 upvote */
-  recordVote(newId, name, email);
+  /* Also auto-upvote this person for their own topic */
+  const votes = cachedVotes || {};
+  if (!votes[newId]) votes[newId] = [];
+  votes[newId].push({ name: name.trim(), email: email.trim().toLowerCase(), ts: new Date().toISOString() });
 
-  await sendToFormspree({
-    name, email,
-    topic:     topicTitle,
-    topicId:   newId,
-    timestamp: new Date().toISOString(),
-    type:      'community_topic_submitted',
-    note:      'User submitted this topic; auto-voted counts as their one upvote.',
-  });
-
+  /* Optimistic UI */
+  cachedTopics = updatedTopics;
+  cachedVotes  = votes;
   closeAddTopicModal();
-  showToast(`&#127775; Topic added, ${name}! Your upvote is recorded.`, 'success');
+  showToast(`&#127775; Topic added, ${name}! You've also upvoted it.`, 'success');
   renderTopics();
+
+  /* Persist to JSONBin + email */
+  await Promise.all([
+    saveTopics(updatedTopics),
+    saveVotes(votes),
+    sendToFormspree({
+      name, email, topic: topicTitle, topicId: newId,
+      timestamp: new Date().toISOString(),
+      type: 'community_topic_submitted',
+      note: 'User submitted this topic and auto-upvoted it. They can still upvote others.',
+    }),
+  ]);
+
   renderAdminTable();
 });
 
@@ -420,15 +445,16 @@ function initAdmin() {
 }
 
 function renderAdminTable() {
-  const wrap  = document.getElementById('admin-table-wrap');
+  const wrap = document.getElementById('admin-table-wrap');
   if (!wrap) return;
-  const votes = loadVotes();
-  const rows  = [];
+  const topics = cachedTopics || PRESET_TOPICS;
+  const votes  = cachedVotes  || {};
+  const rows   = [];
 
-  allTopics().forEach(topic => {
+  topics.forEach(topic => {
     (votes[topic.id] || []).forEach(vote => {
       rows.push({
-        type:  topic.id >= 1000 ? 'Community Topic' : 'Preset Topic',
+        type:  topic.id >= 1000 ? 'Community' : 'Preset',
         label: topic.label || `Topic ${topic.id}`,
         title: topic.title,
         name:  vote.name,
@@ -458,13 +484,14 @@ function renderAdminTable() {
 }
 
 exportBtn && exportBtn.addEventListener('click', () => {
-  const votes = loadVotes();
+  const topics = cachedTopics || PRESET_TOPICS;
+  const votes  = cachedVotes  || {};
   let csv = 'Type,Label,Topic,Name,Email,Timestamp\n';
-  allTopics().forEach(topic => {
+  topics.forEach(topic => {
     (votes[topic.id] || []).forEach(vote => {
       csv += [
-        `"${topic.id >= 1000 ? 'Community Topic' : 'Preset Topic'}"`,
-        `"${(topic.label || '').replace(/"/g,'""')}"`,
+        `"${topic.id >= 1000 ? 'Community' : 'Preset'}"`,
+        `"${(topic.label||'').replace(/"/g,'""')}"`,
         `"${topic.title.replace(/"/g,'""')}"`,
         `"${vote.name.replace(/"/g,'""')}"`,
         `"${vote.email}"`,
@@ -474,17 +501,17 @@ exportBtn && exportBtn.addEventListener('click', () => {
   });
   const blob = new Blob([csv], { type: 'text/csv' });
   const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href = url; a.download = 'unconference_upvotes.csv'; a.click();
+  const a    = document.createElement('a'); a.href = url;
+  a.download = 'unconference_upvotes.csv'; a.click();
   URL.revokeObjectURL(url);
 });
 
-clearDataBtn && clearDataBtn.addEventListener('click', () => {
-  if (confirm('Clear ALL upvote data? This cannot be undone.')) {
-    localStorage.removeItem(VOTES_KEY);
-    localStorage.removeItem(VOTER_KEY);
-    localStorage.removeItem(USER_TOPICS_KEY);
-    localStorage.removeItem(NEXT_ID_KEY);
+clearDataBtn && clearDataBtn.addEventListener('click', async () => {
+  if (confirm('Reset to preset topics and clear all upvotes? This cannot be undone.')) {
+    cachedTopics = [...PRESET_TOPICS];
+    cachedVotes  = {};
+    nextCustomId = 1000;
+    await Promise.all([ saveTopics(cachedTopics), saveVotes({}) ]);
     renderTopics();
     renderAdminTable();
     showToast('All data cleared.', 'error');
@@ -494,6 +521,10 @@ clearDataBtn && clearDataBtn.addEventListener('click', () => {
 /* ── FOOTER YEAR ───────────────────────────────────────── */
 document.getElementById('year').textContent = new Date().getFullYear();
 
-/* ── INIT ──────────────────────────────────────────────── */
-renderTopics();
-initAdmin();
+/* ── INIT — fetch from JSONBin then render ─────────────── */
+(async () => {
+  showToast('Loading topics…', '');
+  await Promise.all([ fetchTopics(), fetchVotes() ]);
+  renderTopics();
+  initAdmin();
+})();
