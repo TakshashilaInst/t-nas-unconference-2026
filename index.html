@@ -69,7 +69,7 @@
       <div class="modal-header">
         <span class="modal-icon">&#128161;</span>
         <h2 id="add-topic-title">Propose a Topic</h2>
-        <p class="modal-session-name">Your topic will appear on the board for others to upvote. Submitting counts as your one upvote — you cannot upvote other topics after this.</p>
+        <p class="modal-session-name">Your topic will appear on the board for others to upvote. You can still upvote other topics too!</p>
       </div>
       <form id="add-topic-form" novalidate>
         <div class="form-group">
@@ -137,11 +137,11 @@
       <div class="topics-header">
         <div class="topics-header-left">
           <h2 class="topics-title">Topics</h2>
-          <p class="topics-desc">You have <strong>1 upvote</strong> to cast — choose wisely. Adding your own topic uses your upvote.</p>
+          <p class="topics-desc">Upvote as many topics as you like — one upvote per topic. You can also add your own!</p>
         </div>
         <div class="upvote-quota" id="upvote-quota-badge">
           <span>&#9650;</span>
-          <span id="upvote-quota-text">0 / 1 upvoted</span>
+          <span id="upvote-quota-text">0 upvotes cast</span>
         </div>
       </div>
       <div class="topics-grid" id="topics-grid">
@@ -155,7 +155,7 @@
   <div id="admin-panel" class="admin-panel hidden">
     <div class="admin-inner">
       <h2>&#128202; Admin: Upvote Data</h2>
-      <p class="admin-hint">Visible only at <code>?admin=1</code>. Data stored in localStorage.</p>
+      <p class="admin-hint">Visible only at <code>?admin=1</code>. Data stored in JSONBin (shared across all users).</p>
       <button class="btn-export" id="export-csv-btn">&#128190; Export CSV</button>
       <button class="btn-danger"  id="clear-data-btn">&#128465; Clear All Data</button>
       <div id="admin-table-wrap"></div>
