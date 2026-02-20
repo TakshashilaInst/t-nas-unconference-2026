@@ -83,7 +83,12 @@ async function fetchTopics() {
   try {
     const r = await fetch(`${JSONBIN_BASE}/${TOPICS_BIN_ID}/latest`, { headers: HEADERS });
     const j = await r.json();
-    const topics = j.record?.topics || [];
+    let topics = j.record?.topics || [];
+    // If bin is empty, seed it with the preset topics
+    if (topics.length === 0) {
+      topics = [...PRESET_TOPICS];
+      await saveTopics(topics);
+    }
     // Compute nextCustomId
     const customIds = topics.filter(t => t.id >= 1000).map(t => t.id);
     nextCustomId = customIds.length ? Math.max(...customIds) + 1 : 1000;
