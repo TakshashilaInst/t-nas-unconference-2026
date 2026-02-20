@@ -16,7 +16,8 @@
     <div class="header-inner">
       <div class="logo-area">
         <img src="https://images.squarespace-cdn.com/content/v1/609cad5f2b20cf45454e749c/3b77a58a-e34f-4a42-853a-623fb58424c4/%5BLOGO%5D%2BTakshashila%2BLogo%2BColour%2BHorizontal.png"
-             alt="Takshashila Institution" class="logo" onerror="this.style.display='none'; document.getElementById('logo-text').style.display='block'" />
+             alt="Takshashila Institution" class="logo"
+             onerror="this.style.display='none'; document.getElementById('logo-text').style.display='block'" />
         <span id="logo-text" class="logo-text-fallback" style="display:none">The Takshashila Institution</span>
       </div>
       <div class="header-title">
@@ -29,22 +30,15 @@
     </div>
   </header>
 
-  <!-- HERO STRIP -->
-  <div class="hero-strip">
-    <span class="hero-tag">&#128101; Interactive Voting</span>
-    <span class="hero-sep">·</span>
-    <span>Pick <strong>1</strong> General Topic &amp; <strong>2</strong> AMAs you'd like to attend</span>
-    <span class="hero-sep">·</span>
-    <span>Enter your name &amp; email to vote</span>
-  </div>
+  <!-- MODALS ─────────────────────────────────────────── -->
 
-  <!-- MODAL: Name + Email -->
+  <!-- Upvote modal (name + email) -->
   <div id="modal-overlay" class="modal-overlay hidden">
     <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="modal-title">
       <button class="modal-close" id="modal-close-btn" aria-label="Close">&times;</button>
       <div class="modal-header">
-        <span class="modal-icon">&#128079;</span>
-        <h2 id="modal-title">I'm Interested!</h2>
+        <span class="modal-icon">&#9650;</span>
+        <h2 id="modal-title">Upvote this Topic</h2>
         <p id="modal-session-name" class="modal-session-name"></p>
       </div>
       <form id="interest-form" novalidate>
@@ -60,7 +54,7 @@
         </div>
         <div class="form-actions">
           <button type="submit" class="btn-primary" id="submit-vote-btn">
-            <span class="btn-icon">&#128077;</span> Confirm Interest
+            <span class="btn-icon">&#9650;</span> Upvote
           </button>
           <button type="button" class="btn-secondary" id="modal-cancel-btn">Cancel</button>
         </div>
@@ -68,14 +62,14 @@
     </div>
   </div>
 
-  <!-- ADD TOPIC MODAL -->
+  <!-- Add / Propose topic modal -->
   <div id="add-topic-overlay" class="modal-overlay hidden">
     <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="add-topic-title">
       <button class="modal-close" id="add-topic-close-btn" aria-label="Close">&times;</button>
       <div class="modal-header">
         <span class="modal-icon">&#128161;</span>
         <h2 id="add-topic-title">Propose a Topic</h2>
-        <p class="modal-session-name">Your topic will appear under General Topics for others to vote on too. Submitting counts as your one General Topics vote.</p>
+        <p class="modal-session-name">Your topic will appear on the board for others to upvote. Submitting counts as your one upvote — you cannot upvote other topics after this.</p>
       </div>
       <form id="add-topic-form" novalidate>
         <div class="form-group">
@@ -103,63 +97,67 @@
     </div>
   </div>
 
-  <!-- SUCCESS TOAST -->
+  <!-- TOAST -->
   <div id="toast" class="toast hidden" role="alert" aria-live="polite"></div>
 
-  <!-- SESSIONS GRID -->
+  <!-- MAIN ───────────────────────────────────────────── -->
   <main class="main-content">
 
-    <!-- SECTION 1: General Topics -->
-    <section class="section-block" id="section-general">
-      <div class="section-header">
-        <div class="section-header-left">
-          <span class="section-badge general">Section 1</span>
-          <h2 class="section-title">General Topics</h2>
-          <p class="section-desc">Choose <strong>exactly 1</strong> session from this section</p>
-        </div>
-        <div class="section-quota" id="quota-general">
-          <span class="quota-icon">&#127919;</span>
-          <span id="quota-general-text">0 / 1 selected</span>
-        </div>
+    <!-- EXPLAINER -->
+    <section class="explainer-block">
+      <div class="explainer-heading">
+        <span class="explainer-tag">&#127908; Unconference Sessions</span>
+        <p class="explainer-lead">Participant-led discussions on topics that matter. Add a topic, vote for what interests you, and shape the agenda.</p>
       </div>
-      <div class="sessions-grid" id="sessions-grid-general">
-        <!-- Cards injected by JS -->
-      </div>
-      <div class="add-topic-row">
-        <button class="btn-add-topic" id="add-topic-btn">
-          &#10010; Propose Your Own Topic
-        </button>
-        <p class="add-topic-hint">Have an idea not listed above? Add it — and your submission counts as your General Topics vote.</p>
+      <div class="explainer-divider"></div>
+      <div class="explainer-how">
+        <h3 class="explainer-how-title">How does Unconference work?</h3>
+        <ul class="explainer-list">
+          <li>Participants can suggest&nbsp;/&nbsp;add their topics here, which will then be upvoted by everyone. Most upvoted topics will be selected and assigned spaces&nbsp;/&nbsp;tables.</li>
+          <li>You're free to join any discussion that interests you. Conversations are informal and participant-led — no presentations required.</li>
+          <li>Follow the <strong>"Law of Two Feet"</strong>: if a discussion isn't working for you, feel free to move. The goal is open exchange, collaboration, and idea generation. Key insights may be captured and shared after the session.</li>
+        </ul>
       </div>
     </section>
 
-    <!-- SECTION 2: AMAs -->
-    <section class="section-block" id="section-ama">
-      <div class="section-header">
-        <div class="section-header-left">
-          <span class="section-badge ama">Section 2</span>
-          <h2 class="section-title">AMAs with Mentors &amp; Invitees</h2>
-          <p class="section-desc">Choose <strong>exactly 2</strong> sessions from this section</p>
-        </div>
-        <div class="section-quota" id="quota-ama">
-          <span class="quota-icon">&#127919;</span>
-          <span id="quota-ama-text">0 / 2 selected</span>
+    <!-- PROPOSE TOPIC BANNER -->
+    <div class="propose-banner">
+      <div class="propose-banner-text">
+        <span class="propose-banner-icon">&#128161;</span>
+        <div>
+          <p class="propose-banner-headline">Tell us your own topic of interest!</p>
+          <p class="propose-banner-sub">People can see it and upvote it. For reference, do check the topics we have provided below.</p>
         </div>
       </div>
-      <div class="sessions-grid" id="sessions-grid-ama">
-        <!-- Cards 5–22 injected by JS -->
+      <button class="btn-add-topic" id="add-topic-btn">&#10010; Add Your Topic</button>
+    </div>
+
+    <!-- UNIFIED TOPICS GRID -->
+    <section class="topics-section">
+      <div class="topics-header">
+        <div class="topics-header-left">
+          <h2 class="topics-title">Topics</h2>
+          <p class="topics-desc">You have <strong>1 upvote</strong> to cast — choose wisely. Adding your own topic uses your upvote.</p>
+        </div>
+        <div class="upvote-quota" id="upvote-quota-badge">
+          <span>&#9650;</span>
+          <span id="upvote-quota-text">0 / 1 upvoted</span>
+        </div>
+      </div>
+      <div class="topics-grid" id="topics-grid">
+        <!-- Cards injected by JS -->
       </div>
     </section>
 
   </main>
 
-  <!-- ADMIN PANEL (hidden by default, toggle via ?admin=1 in URL) -->
+  <!-- ADMIN PANEL -->
   <div id="admin-panel" class="admin-panel hidden">
     <div class="admin-inner">
-      <h2>&#128202; Admin: Interest Data</h2>
-      <p class="admin-hint">This panel is visible only in admin mode (<code>?admin=1</code>). Data is stored in localStorage for demo purposes.</p>
-      <button class="btn-export" id="export-csv-btn">&#128190; Export as CSV</button>
-      <button class="btn-danger" id="clear-data-btn">&#128465; Clear All Data</button>
+      <h2>&#128202; Admin: Upvote Data</h2>
+      <p class="admin-hint">Visible only at <code>?admin=1</code>. Data stored in localStorage.</p>
+      <button class="btn-export" id="export-csv-btn">&#128190; Export CSV</button>
+      <button class="btn-danger"  id="clear-data-btn">&#128465; Clear All Data</button>
       <div id="admin-table-wrap"></div>
     </div>
   </div>
